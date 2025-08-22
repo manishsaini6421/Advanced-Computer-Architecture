@@ -20,7 +20,7 @@
 
 // defines
 // NOTE: you can change this value as per your requirement
-#define TILE_SIZE	100		// size of the tile for blocking
+#define TILE_SIZE	8	// size of the tile for blocking
 
 /**
  * @brief 		Performs matrix multiplication of two matrices.
@@ -49,6 +49,40 @@ void naive_mat_mul(double *A, double *B, double *C, int size) {
  */
 void loop_opt_mat_mul(double *A, double *B, double *C, int size){
 //----------------------------------------------------- Write your code here ----------------------------------------------------------------
+	// //Effects of loops (kij)
+	// for (int k = 0; k < size; k++) {
+	// 	for (int i = 0; i < size; i++) {
+	// 		double r=A[i * size + k];
+	// 		for (int j = 0; j < size; j++) {
+	// 			C[i * size + j] += r * B[k * size + j];
+	// 		}
+	// 	}
+	// }
+
+	// //Effects of loops (jki)
+	// for (int j = 0; j < size; j++) {
+	// 	for (int k = 0; k < size; k++) {
+	// 		double r=B[k * size + j];
+	// 		for (int i = 0; i < size; i++) {
+	// 			C[i * size + j] += A[i * size + k] * r;
+	// 		}
+	// 	}
+	// }
+
+
+	//Effects of loop unrolling
+
+	for (int i = 0; i < size; i++) {
+		for (int j = 0; j < size; j++) {
+			double r = A[i * size + j];
+			for (int k = 0; k < size; k += 4) {
+				C[i * size + k] += r * B[j * size + k];
+				C[i * size + k + 1] += r * B[j * size + k + 1];
+				C[i * size + k + 2] += r * B[j * size + k + 2];
+				C[i * size + k + 3] += r * B[j * size + k + 3];
+			}
+		}
+	}
 
 //-------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -68,8 +102,23 @@ void loop_opt_mat_mul(double *A, double *B, double *C, int size){
 */
 void tile_mat_mul(double *A, double *B, double *C, int size, int tile_size) {
 //----------------------------------------------------- Write your code here ----------------------------------------------------------------
-    
-
+    //tile_matrix_multiplication
+    for (int i = 0; i < size; i += tile_size) {
+        for (int j = 0; j < size; j += tile_size) {
+            for (int k = 0; k < size; k += tile_size) {
+                // Multiply tiles
+                for (int ii = i; ii < i + tile_size && ii < size; ++ii) {
+                    for (int jj = j; jj < j + tile_size && jj < size; ++jj) {
+                        double sum = 0.0;
+                        for (int kk = k; kk < k + tile_size && kk < size; ++kk) {
+                            sum += A[ii * size + kk] * B[kk * size + jj];
+                        }
+                        C[ii * size + jj] += sum;
+                    }
+                }
+            }
+        }
+    }
 //-------------------------------------------------------------------------------------------------------------------------------------------
     
 }
@@ -139,6 +188,10 @@ int main(int argc, char **argv) {
 		initialize_matrix(B, size, size);
 
 		// perform normal matrix multiplication
+		
+		// initialize result matrix to 0
+		initialize_result_matrix(C, size, size);
+
 		auto start = std::chrono::high_resolution_clock::now();
 		naive_mat_mul(A, B, C, size);
 		auto end = std::chrono::high_resolution_clock::now();
