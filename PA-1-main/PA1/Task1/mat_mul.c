@@ -102,7 +102,7 @@ void loop_opt_mat_mul(double *A, double *B, double *C, int size){
 */
 void tile_mat_mul(double *A, double *B, double *C, int size, int tile_size) {
 //----------------------------------------------------- Write your code here ----------------------------------------------------------------
-    //tile_matrix_multiplication
+    //tile_matrix_multiplication //test
     for (int i = 0; i < size; i += tile_size) {
         for (int j = 0; j < size; j += tile_size) {
             for (int k = 0; k < size; k += tile_size) {
