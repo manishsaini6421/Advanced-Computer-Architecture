@@ -65,7 +65,7 @@ long long run_with_prefetching(const vector<float>& embedding_table, const vecto
         }
 
         output.push_back(bag_embedding);
-
+        
     }    
     //-------------------------------------------------------------------------------------------------------------------------------------------
 
