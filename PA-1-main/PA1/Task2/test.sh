@@ -1,23 +1,53 @@
 #!/bin/bash
 
 # Set core affinity for the script’s process itself (can be adapted if specific pinning is desired later)
-taskset -cp 1-3,5-7 $$ >/dev/null
+taskset -cp 2,3 $$ >/dev/null
 
 # --- Configurable parameters (Extend as needed) ---
-EXEC="./embedding_test"   # Replace with your embedding operation binary
-OUTPUT_FILE="embedding_perf_results.csv"
+EXEC="./emb"   # C++ binary built from emb.cpp
+OUTPUT_DIR="perf_raw_outputs"
 
 # These arrays should be expanded as necessary
-EMBED_SIZES=(1000 1000000)
+EMBED_SIZES=(1000000 2000000 3000000)
 PREFETCH_DISTANCES=(4 16)
 CACHE_LEVELS=("L1" "L2" "LLC")  # Map to prefetch hints
 SOFTWARE_PREFETCH=("off" "on")
 
-# Perf events relevant for your table
-PERF_EVENTS="L1-dcache-load-misses,L2_rqsts.miss,LLC-load-misses,sw_prefetch_access"
+# Perf events (generic + requested). You can override by exporting PERF_EVENTS before running.
+# Includes requested: L1-dcache-load-misses,L2_rqsts.miss,LLC-load-misses,sw_prefetch_access.t0
+: ${PERF_EVENTS:="cycles,instructions,cache-references,cache-misses,branches,branch-misses,task-clock,L1-dcache-load-misses,L2_rqsts.miss,LLC-load-misses,sw_prefetch_access.t0"}
+PERF_FLAGS="--all-user --no-big-num"
+# PERF_EVENTS="L1-dcache-load-misses,l2_rqsts.miss,LLC-load-misses,sw_prefetch_access.t0"
 
-# CSV header
-echo "Prefetching,EmbedTableSize,PrefetchDistance,CacheLevel,L1D_misses,L2_misses,LLC_misses,SW_prefetch_requests,ExecTime_ms" > "$OUTPUT_FILE"
+mkdir -p "$OUTPUT_DIR"
+
+# Detect if perf is usable (handles perf_event_paranoid restrictions)
+USE_PERF=1
+if ! perf stat -e cycles true >/dev/null 2>&1; then
+  echo "perf not usable in this environment (likely due to perf_event_paranoid). Proceeding without perf." >&2
+  USE_PERF=0
+fi
+
+# Validate requested perf events and keep only supported ones
+PERF_EVENTS_JOINED=""
+if [ "$USE_PERF" -eq 1 ]; then
+  IFS=',' read -r -a REQ_EVENTS <<< "$PERF_EVENTS"
+  VALID_EVENTS=()
+  for ev in "${REQ_EVENTS[@]}"; do
+    ev_trimmed="${ev## }"; ev_trimmed="${ev_trimmed%% }"
+    if [ -n "$ev_trimmed" ] && perf stat -e "$ev_trimmed" true >/dev/null 2>&1; then
+      VALID_EVENTS+=("$ev_trimmed")
+    else
+      echo "Skipping unsupported perf event: $ev_trimmed" >&2
+    fi
+  done
+  if [ ${#VALID_EVENTS[@]} -gt 0 ]; then
+    PERF_EVENTS_JOINED=$(IFS=,; echo "${VALID_EVENTS[*]}")
+  else
+    echo "No requested perf events are supported; running without perf." >&2
+    USE_PERF=0
+  fi
+fi
 
 prefetch_hint_flag() {
   case "$1" in
@@ -28,15 +58,7 @@ prefetch_hint_flag() {
   esac
 }
 
-parse_perf_output() {
-    # Usage: parse_perf_output "$perf_output"
-    local po="$1"
-    local l1d=$(echo "$po" | grep "L1-dcache-load-misses" | awk '{print $1}' | tr -d ',')
-    local l2=$(echo "$po" | grep "L2_rqsts.miss"     | awk '{print $1}' | tr -d ',')
-    local llc=$(echo "$po" | grep "LLC-load-misses"  | awk '{print $1}' | tr -d ',')
-    local swp=$(echo "$po" | grep "sw_prefetch_access" | awk '{print $1}' | tr -d ',')
-    echo "$l1d,$l2,$llc,$swp"
-}
+# No parsing; we save raw perf+program output per run
 
 # Main experiment loop
 for prefetch in "${SOFTWARE_PREFETCH[@]}"; do
@@ -53,17 +75,14 @@ for prefetch in "${SOFTWARE_PREFETCH[@]}"; do
 
                 # Run perf (run multiple times if you want to average)
                 for tr in {1..5}; do
-                  perf_out=$(perf stat -e $PERF_EVENTS taskset -c 0,4 $EXEC $args 2>&1)
-                  # Replace this grep with suitable extraction from your exec output:
-                  exec_time=$(echo "$perf_out" | grep "embedding operation took" | awk '{print $4}')
-
-                  # Fall back if Python/time not instrumented, e.g., use `time` or similar.
-                  [ -z "$exec_time" ] && exec_time=$(echo "$perf_out" | grep "real" | awk '{print $2}')
-
-                  perf_metrics=$(parse_perf_output "$perf_out")
-
-                  # Compose row for CSV
-                  echo "$prefetch,$et_size,$pdist,$cache_lvl,$perf_metrics,$exec_time" >> "$OUTPUT_FILE"
+                  out_file="$OUTPUT_DIR/out_prefetch-${prefetch}_size-${et_size}_dist-${pdist}_lvl-${cache_lvl}_try-${tr}.txt"
+                  if [ "$USE_PERF" -eq 1 ]; then
+                    echo "[perf events] $PERF_EVENTS_JOINED" > "$out_file"
+                    perf stat $PERF_FLAGS -e "$PERF_EVENTS_JOINED" -- taskset -c 0,1 $EXEC $args >> "$out_file" 2>&1
+                  else
+                    echo "[perf disabled] Running without perf stat due to permissions." > "$out_file"
+                    taskset -c 0,1 $EXEC $args >> "$out_file" 2>&1
+                  fi
                 done
 
             done

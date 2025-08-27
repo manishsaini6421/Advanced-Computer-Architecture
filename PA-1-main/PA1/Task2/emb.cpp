@@ -5,14 +5,66 @@
 #include <chrono>
 #include <immintrin.h> 
 #include <cstdlib>
+#include <string>
+#include <optional>
 
 using namespace std;
 using namespace std::chrono;
 
-const int embedding_table_size = 1000000;
-const int embedding_dim = 128;
-const int input_size = 720;
-const int num_bags = 20;
+static int embedding_table_size = 1000000;
+static const int embedding_dim = 128;
+static const int input_size = 720;
+static const int num_bags = 20;
+static int prefetch_distance = 4;
+static int prefetch_hint = _MM_HINT_T0;
+static bool enable_software_prefetch = false;
+
+static void parse_args(int argc, char** argv) {
+    for (int i = 1; i < argc; ++i) {
+        string arg = argv[i];
+        auto get_val = [&](const string& key) -> optional<string> {
+            string prefix = "--" + key + "=";
+            if (arg.rfind(prefix, 0) == 0) return arg.substr(prefix.size());
+            return nullopt;
+        };
+
+        if (auto v = get_val("software-prefetch")) {
+            string s = *v;
+            enable_software_prefetch = (s == "on" || s == "true" || s == "1");
+        } else if (auto v = get_val("embed-size")) {
+            embedding_table_size = stoi(*v);
+        } else if (auto v = get_val("prefetch-distance")) {
+            prefetch_distance = stoi(*v);
+        } else if (auto v = get_val("prefetch-level")) {
+            string s = *v;
+            if (s.find("T0") != string::npos) prefetch_hint = _MM_HINT_T0;
+            else if (s.find("T1") != string::npos) prefetch_hint = _MM_HINT_T1;
+            else if (s.find("T2") != string::npos) prefetch_hint = _MM_HINT_T2;
+            else prefetch_hint = _MM_HINT_T0;
+        }
+    }
+}
+
+static inline void prefetch_with_hint(const void* ptr) {
+    // Dispatch to constant hints to satisfy compiler requirements
+    switch (prefetch_hint) {
+        case _MM_HINT_T0:
+            _mm_prefetch(reinterpret_cast<const char*>(ptr), _MM_HINT_T0);
+            break;
+        case _MM_HINT_T1:
+            _mm_prefetch(reinterpret_cast<const char*>(ptr), _MM_HINT_T1);
+            break;
+        case _MM_HINT_T2:
+            _mm_prefetch(reinterpret_cast<const char*>(ptr), _MM_HINT_T2);
+            break;
+        case _MM_HINT_NTA:
+            _mm_prefetch(reinterpret_cast<const char*>(ptr), _MM_HINT_NTA);
+            break;
+        default:
+            _mm_prefetch(reinterpret_cast<const char*>(ptr), _MM_HINT_T0);
+            break;
+    }
+}
 
 
 int random_int(int range) {
@@ -38,12 +90,13 @@ long long run_with_prefetching(const vector<float>& embedding_table, const vecto
     
     //----------------------------------------------------- Write your code here ----------------------------------------------------------------
     vector<vector<float>> output;
-    int op_at_a_time = 4;
+    int op_at_a_time = prefetch_distance > 0 ? prefetch_distance : 4;
 
     for (size_t i = 0; i < offsets.size(); ++i) {
 
-        // if (i + op_at_a_time < offsets.size()) {
-        //     _mm_prefetch((const char*)&offsets[i + op_at_a_time], _MM_HINT_T0);
+        // Potential prefetch of upcoming offset metadata if beneficial
+        // if (i + 1 < offsets.size()) {
+        //     _mm_prefetch((const char*)&offsets[i + 1], prefetch_hint);
         // }
 
         int start_idx = offsets[i];
@@ -54,7 +107,8 @@ long long run_with_prefetching(const vector<float>& embedding_table, const vecto
         for (int j = start_idx; j < end_idx; ++j) {
 
             if (j + op_at_a_time < end_idx) {
-                _mm_prefetch(&embedding_table[input[j + op_at_a_time] * embedding_dim] , _MM_HINT_T0);
+                const float* pf_ptr = &embedding_table[input[j + op_at_a_time] * embedding_dim];
+                prefetch_with_hint(pf_ptr);
             }
 
             const float* data_ptr = &embedding_table[input[j] * embedding_dim];
@@ -191,7 +245,8 @@ long long naive_emb(vector<float>& embedding_table, const vector<int>& input, co
 
 }
 
-int main() {
+int main(int argc, char** argv) {
+    parse_args(argc, argv);
     // Prepare embedding table
     vector<float> embedding_table(embedding_table_size * embedding_dim);
     for (auto& val : embedding_table) {
@@ -215,37 +270,18 @@ int main() {
         offsets.push_back((input_size * i) / num_bags);
     }
 
-    // Run naive code 
-    long long time_without_prefetch = naive_emb(embedding_table, input, offsets);
-    
-    // ---------- Flush Cache Before Running Prefetching ----------
+    long long measured_us = 0;
+    if (!enable_software_prefetch) {
+        measured_us = naive_emb(embedding_table, input, offsets);
+    } else {
+        // Flush cache before prefetching run to avoid warm data bias
     for (size_t i = 0; i < embedding_table.size(); i += 16) {
         _mm_clflush(&embedding_table[i]);
     }
     _mm_mfence();
-    
-    // Run emb with software prefetching 
-    long long time_with_prefetch = run_with_prefetching(embedding_table, input, offsets);
-
-    for (size_t i = 0; i < embedding_table.size(); i += 16) {
-        _mm_clflush(&embedding_table[i]);
+        measured_us = run_with_prefetching(embedding_table, input, offsets);
     }
-    _mm_mfence();
 
-    // Run emb with simd 
-
-    long long time_with_simd = run_with_simd(embedding_table, input, offsets);
-    // Run emb with software prefetching and simd
-    long long time_with_prefetch_simd = run_with_prefetching_simd(embedding_table, input, offsets);
-
-    // Compute speedup
-    double speedup1 = static_cast<double>(time_without_prefetch) / time_with_prefetch;
-    double speedup2 = static_cast<double>(time_without_prefetch) / time_with_simd;
-    double speedup3 = static_cast<double>(time_without_prefetch) / time_with_prefetch_simd;
-    cout << fixed << setprecision(3);
-    cout << "\n\nSpeedup (with software prefetching) = " << speedup1 << "x\n";
-    cout << "Speedup (with simd) = " << speedup2 << "x\n";
-    cout << "Speedup (with software prefetching and simd) = " << speedup3 << "x\n";
-
+    cout << "emb_exec_time_us: " << measured_us << "\n";
     return 0;
 }
