@@ -20,7 +20,7 @@
 
 // defines
 // NOTE: you can change this value as per your requirement
-#define TILE_SIZE	8	// size of the tile for blocking
+#define TILE_SIZE	2048 // size of the tile for blocking
 
 /**
  * @brief 		Performs matrix multiplication of two matrices.
@@ -102,18 +102,15 @@ void loop_opt_mat_mul(double *A, double *B, double *C, int size){
 */
 void tile_mat_mul(double *A, double *B, double *C, int size, int tile_size) {
 //----------------------------------------------------- Write your code here ----------------------------------------------------------------
-    //tile_matrix_multiplication //test
-    for (int i = 0; i < size; i += tile_size) {
+    //tile_matrix_multiplication
+   for (int i = 0; i < size; i += tile_size) {
         for (int j = 0; j < size; j += tile_size) {
             for (int k = 0; k < size; k += tile_size) {
-                // Multiply tiles
                 for (int ii = i; ii < i + tile_size && ii < size; ++ii) {
                     for (int jj = j; jj < j + tile_size && jj < size; ++jj) {
-                        double sum = 0.0;
                         for (int kk = k; kk < k + tile_size && kk < size; ++kk) {
-                            sum += A[ii * size + kk] * B[kk * size + jj];
+                            C[ii * size + jj] += A[ii * size + kk] * B[kk * size + jj];
                         }
-                        C[ii * size + jj] += sum;
                     }
                 }
             }
@@ -190,13 +187,13 @@ int main(int argc, char **argv) {
 		// perform normal matrix multiplication
 		
 		// initialize result matrix to 0
-		initialize_result_matrix(C, size, size);
+		// initialize_result_matrix(C, size, size);
 
-		auto start = std::chrono::high_resolution_clock::now();
-		naive_mat_mul(A, B, C, size);
-		auto end = std::chrono::high_resolution_clock::now();
-		auto time_naive_mat_mul = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
-		printf("Normal matrix multiplication took %ld ms to execute \n\n", time_naive_mat_mul);
+		// auto start = std::chrono::high_resolution_clock::now();
+		// naive_mat_mul(A, B, C, size);
+		// auto end = std::chrono::high_resolution_clock::now();
+		// auto time_naive_mat_mul = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+		// printf("Normal matrix multiplication took %ld ms to execute \n\n", time_naive_mat_mul);
 
 	#ifdef OPTIMIZE_LOOP_OPT
 		// Task 1a: perform matrix multiplication with loop optimization
@@ -218,12 +215,12 @@ int main(int argc, char **argv) {
 		// initialize result matrix to 0
 		initialize_result_matrix(C, size, size);
 
-		start = std::chrono::high_resolution_clock::now();
+		auto start = std::chrono::high_resolution_clock::now();
 		tile_mat_mul(A, B, C, size, TILE_SIZE);
-		end = std::chrono::high_resolution_clock::now();
+		auto end = std::chrono::high_resolution_clock::now();
 		auto time_tiling_mat_mul = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 		printf("Tiling matrix multiplication took %ld ms to execute \n", time_tiling_mat_mul);
-		printf("Normalized performance: %f \n\n", (double)time_naive_mat_mul / time_tiling_mat_mul);
+		//printf("Normalized performance: %f \n\n", (double)time_naive_mat_mul / time_tiling_mat_mul);
 	#endif
 
 	#ifdef OPTIMIZE_SIMD
