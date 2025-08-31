@@ -7,8 +7,8 @@ tiling: mat_mul
 loop: mat_mul
 	g++ mat_mul.c -D OPTIMIZE_LOOP_OPT -o $(BIN)/$@
 
-simd: mat_mul
-	g++ mat_mul.c -D OPTIMIZE_SIMD -o $(BIN)/$@
+simd: mat_mul	
+	g++ mat_mul.c -D OPTIMIZE_SIMD -o $(BIN)/$@ -O3 -msse2 -mavx2 -mfma
 
 combination: mat_mul
 	g++ mat_mul.c -D OPTIMIZE_COMBINED -o $(BIN)/$@

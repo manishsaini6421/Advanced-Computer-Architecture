@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>L1-D MPKI vs. Matrix Size</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+</head>
+<body>
+    <canvas id="mpkiChart" width="800" height="400"></canvas>
+
+    <script>
+        // List of tile sizes to load (modify based on your CSV files, e.g., [32, 64, 128])
+        const tileSizes = [2,4,8,16,20,24,32,64,128]; // Add more tile sizes as needed, e.g., [32, 64, 128]
+
+        // Colors for different tile sizes (extend as needed)
+        const colors = [
+            '#1f77b4', // Blue
+            '#ff7f0e', // Orange
+            '#2ca02c', // Green
+            '#d62728', // Red
+            '#9467bd', // Purple
+            '#8c564b', // Brown
+            '#e377c2', // Pink
+            '#7f7f7f',  // Gray
+            '#000000',   //Black
+
+        ];
+
+        // Array to store datasets for Chart.js
+        let datasets = [];
+        let matrixSizes = [];
+
+        // Function to load and parse a CSV file
+        function loadCSV(tileSize, color, callback) {
+            Papa.parse(`${tileSize}.csv`, {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    const data = results.data;
+                    const mpkiData = data.map(row => parseFloat(row['Avg MPKI']));
+                    const sizes = data.map(row => parseInt(row['Matrix size']));
+                    
+                    // Update global matrix sizes (assuming all CSVs have the same matrix sizes)
+                    if (matrixSizes.length === 0) {
+                        matrixSizes = sizes.map(String); // Convert to strings for category scale
+                    }
+
+                    // Add dataset for this tile size
+                    datasets.push({
+                        label: `Tile Size ${tileSize}`,
+                        data: mpkiData,
+                        borderColor: color,
+                        backgroundColor: color,
+                        fill: false,
+                        tension: 0.0,
+                        pointRadius: 5
+                    });
+
+                    callback();
+                },
+                error: function(error) {
+                    console.warn(`Failed to load ${tileSize}.csv: ${error}`);
+                    callback(); // Continue even if one file fails
+                }
+            });
+        }
+
+        // Counter to track loaded CSVs
+        let loadedCount = 0;
+
+        // Function to render chart after all CSVs are loaded
+        function renderChart() {
+            const ctx = document.getElementById('mpkiChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: matrixSizes, // Exact matrix sizes from CSV
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'L1-D MPKI vs. Matrix Size for Different Tile Sizes',
+                            font: {
+                                size: 16
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'category', // Use category scale to show exact matrix sizes
+                            title: {
+                                display: true,
+                                text: 'Matrix Size'
+                            }
+                        },
+                        y: {
+                            title: {
+                                display: true,
+                                text: 'L1-D MPKI'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load all CSV files
+        tileSizes.forEach((tileSize, index) => {
+            loadCSV(tileSize, colors[index % colors.length], () => {
+                loadedCount++;
+                if (loadedCount === tileSizes.length) {
+                    renderChart();
+                }
+            });
+        });
+    </script>
+</body>
+</html>

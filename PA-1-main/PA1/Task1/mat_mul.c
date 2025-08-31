@@ -20,7 +20,7 @@
 
 // defines
 // NOTE: you can change this value as per your requirement
-#define TILE_SIZE	2048 // size of the tile for blocking
+#define TILE_SIZE	256 // size of the tile for blocking
 
 /**
  * @brief 		Performs matrix multiplication of two matrices.
@@ -130,8 +130,50 @@ void tile_mat_mul(double *A, double *B, double *C, int size, int tile_size) {
 */
 void simd_mat_mul(double *A, double *B, double *C, int size) {
 //----------------------------------------------------- Write your code here ----------------------------------------------------------------
-    
+    // 128-bit SSE version (processes 2 doubles at a time)
+	 for (int i = 0; i < size; i++) {
+        for (int j = 0; j < size; j++) {
+            __m128d c_vec = _mm_setzero_pd(); // Initialize vector for C[i][j]
+            for (int k = 0; k < size - 1; k += 2) { // Process 2 elements at a time
+                __m128d a_vec = _mm_loadu_pd(&A[i * size + k]); // Load 2 elements from A[i][k:k+1]
+                // Load B[k][j] and B[k+1][j] (non-contiguous) into a vector
+                __m128d b_vec = _mm_set_pd(B[(k + 1) * size + j], B[k * size + j]);
+                c_vec = _mm_fmadd_pd(a_vec, b_vec, c_vec); // c_vec += a_vec * b_vec
+            }
+            // Reduce c_vec to scalar and store in C[i][j]
+            double temp[2];
+            _mm_storeu_pd(temp, c_vec);
+            C[i * size + j] += temp[0] + temp[1];
+            // Handle remainder if size is odd
+            if (size % 2) {
+                C[i * size + j] += A[i * size + (size - 1)] * B[(size - 1) * size + j];
+            }
+        }
+    }
 
+
+
+	//256-bit AVX version (processes 4 doubles at a time)
+	// for (int i = 0; i < size; i++) {
+    //     for (int j = 0; j < size; j++) {
+    //         __m256d c_vec = _mm256_setzero_pd(); // Initialize vector for C[i][j]
+    //         for (int k = 0; k < size - 3; k += 4) { // Process 4 elements at a time
+    //             __m256d a_vec = _mm256_loadu_pd(&A[i * size + k]); // Load 4 elements from A[i][k:k+3]
+    //             // Load B[k][j], B[k+1][j], B[k+2][j], B[k+3][j] (non-contiguous) into a vector
+    //             __m256d b_vec = _mm256_set_pd(B[(k + 3) * size + j], B[(k + 2) * size + j],
+    //                                           B[(k + 1) * size + j], B[k * size + j]);
+    //             c_vec = _mm256_fmadd_pd(a_vec, b_vec, c_vec); // c_vec += a_vec * b_vec
+    //         }
+    //         // Reduce c_vec to scalar and store in C[i][j]
+    //         double temp[4];
+    //         _mm256_storeu_pd(temp, c_vec);
+    //         C[i * size + j] += temp[0] + temp[1] + temp[2] + temp[3];
+    //         // Handle remainder if size % 4 != 0
+    //         for (int k = size - (size % 4); k < size; k++) {
+    //             C[i * size + j] += A[i * size + k] * B[k * size + j];
+    //         }
+    //     }
+    // }
 //-------------------------------------------------------------------------------------------------------------------------------------------
     
 }
@@ -229,13 +271,13 @@ int main(int argc, char **argv) {
 		// initialize result matrix to 0
 		initialize_result_matrix(C, size, size);
 
-		start = std::chrono::high_resolution_clock::now();
+		auto start = std::chrono::high_resolution_clock::now();
 		simd_mat_mul(A, B, C, size);
-		end = std::chrono::high_resolution_clock::now();
+		auto end = std::chrono::high_resolution_clock::now();
 		auto time_simd_mat_mul = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
 
 		printf("SIMD matrix multiplication took %ld ms to execute \n", time_simd_mat_mul);
-		printf("Normalized performance: %f \n\n", (double)time_naive_mat_mul / time_simd_mat_mul);
+		// printf("Normalized performance: %f \n\n", (double)time_naive_mat_mul / time_simd_mat_mul);
 	#endif
 
 	#ifdef OPTIMIZE_COMBINED
