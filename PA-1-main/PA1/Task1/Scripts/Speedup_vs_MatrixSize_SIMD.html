@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speedup vs. Matrix Size for SIMD Widths</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+</head>
+<body>
+    <canvas id="speedupChart" width="1200" height="700"></canvas>
+
+    <script>
+        // List of SIMD widths
+        const simdWidths = ['128', '256'];
+
+        // Matrix sizes to include in the plot
+        const allowedMatrixSizes = [128, 512,831, 1024, 2048];
+
+        // Colors for different SIMD widths
+        const colors = [
+            '#1f77b4', // Blue for 128-bit SSE
+            '#ff7f0e'  // Orange for 256-bit AVX
+        ];
+
+        // Array to store datasets for Chart.js
+        let datasets = [];
+        let matrixSizes = [];
+        let naiveTimes = {};
+
+        // Function to load and parse the naive CSV file
+        function loadNaiveCSV(callback) {
+            Papa.parse('avg_naive.csv', {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    const data = results.data;
+                    const filteredData = data.filter(row => allowedMatrixSizes.includes(parseInt(row['Matrix size'])));
+                    filteredData.forEach(row => {
+                        naiveTimes[parseInt(row['Matrix size'])] = parseFloat(row['Avg Execution Time(ms)']);
+                    });
+                    callback();
+                },
+                error: function(error) {
+                    console.error(`Failed to load avg_naive.csv: ${error}`);
+                    callback();
+                }
+            });
+        }
+
+        // Function to load and parse a SIMD CSV file
+        function loadSIMDCSV(simdWidth, color, callback) {
+            Papa.parse(`avg_SIMD_${simdWidth}.csv`, {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    const data = results.data;
+                    const filteredData = data.filter(row => allowedMatrixSizes.includes(parseInt(row['Matrix size'])));
+                    const timeData = filteredData.map(row => {
+                        const matrixSize = parseInt(row['Matrix size']);
+                        const simdTime = parseFloat(row['Avg Execution Time(ms)']);
+                        const naiveTime = naiveTimes[matrixSize] || 1; // Fallback to 1
+                        return naiveTime / simdTime; // Calculate speedup
+                    });
+                    const sizes = filteredData.map(row => parseInt(row['Matrix size']));
+                    
+                    if (matrixSizes.length === 0) {
+                        matrixSizes = sizes.map(String);
+                    }
+
+                    datasets.push({
+                        label: `SIMD ${simdWidth}-bit`,
+                        data: timeData,
+                        borderColor: color,
+                        backgroundColor: color,
+                        fill: false,
+                        tension: 0.1,
+                        pointRadius: 5,
+                        pointBackgroundColor: color,
+                        borderWidth: 2
+                    });
+
+                    callback();
+                },
+                error: function(error) {
+                    console.warn(`Failed to load avg_SIMD_${simdWidth}.csv: ${error}`);
+                    callback();
+                }
+            });
+        }
+
+        // Counter to track loaded CSVs
+        let loadedCount = 0;
+
+        // Function to render chart
+        function renderChart() {
+            const ctx = document.getElementById('speedupChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: matrixSizes,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Speedup vs. Matrix Size (128 to 2048) for Different SIMD Widths',
+                            font: { size: 18 }
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 20,
+                                padding: 30,
+                                font: { size: 12 }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'category',
+                            title: {
+                                display: true,
+                                text: 'Matrix Size',
+                                font: { size: 14 },
+                                color: '#000000'
+                            },
+                            ticks: { color: '#000000' }
+                        },
+                        y: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Speedup (Naive / SIMD Execution Time)',
+                                font: { size: 14 },
+                                color: '#000000'
+                            },
+                            min: 1,
+                            max: 2, // Adjusted for max speedup ~2.4
+                            ticks: {
+                                stepSize: 0.2,
+                                color: '#000000',
+                                callback: function(value) {
+                                    return Number(value).toFixed(1);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load CSVs
+        loadNaiveCSV(() => {
+            simdWidths.forEach((simdWidth, index) => {
+                loadSIMDCSV(simdWidth, colors[index % colors.length], () => {
+                    loadedCount++;
+                    if (loadedCount === simdWidths.length) {
+                        renderChart();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

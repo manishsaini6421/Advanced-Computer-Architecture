@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speedup vs. Matrix Size (128 to 2048)</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+</head>
+<body>
+    <canvas id="speedupChart" width="1200" height="700"></canvas>
+
+    <script>
+        // List of tile sizes from provided CSV files
+        const fileNames = ["Tiling","SIMD_128", "SIMD_256","loop_reordering","loop_unrolling","SIMD+Tiling","SIMD+Tiling+Transpose"];
+
+        // Matrix sizes to include in the plot
+        const allowedMatrixSizes = [64,128, 256, 512, 831, 1024, 2048];
+
+        // Colors for different tile sizes with transparency
+        const colors = [
+            '#1f77b4', // Blue
+            '#ff7f0e', // Orange
+            '#2ca02c', // Green
+            '#d62728', // Red
+            '#9467bd', // Purple
+            '#8c564b', // Brown
+            '#e377c2', // Pink
+            '#7f7f7f',  // Gray
+            '#000000',   //Black
+        ];
+
+        // Array to store datasets for Chart.js
+        let datasets = [];
+        let matrixSizes = [];
+        let naiveTimes = {};
+
+        // Function to load and parse the naive CSV file
+        function loadNaiveCSV(callback) {
+            Papa.parse('avg_naive.csv', {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    const data = results.data;
+                    // Filter data for allowed matrix sizes
+                    const filteredData = data.filter(row => allowedMatrixSizes.includes(parseInt(row['Matrix size'])));
+                    filteredData.forEach(row => {
+                        naiveTimes[parseInt(row['Matrix size'])] = parseFloat(row['Avg Execution Time(ms)']);
+                    });
+                    callback();
+                },
+                error: function(error) {
+                    console.error(`Failed to load avg_nive.csv: ${error}`);
+                    callback(); // Continue even if naive file fails
+                }
+            });
+        }
+
+        // Function to load and parse a tiled CSV file
+        function loadTiledCSV(fileNames, color, callback) {
+            Papa.parse(`${fileNames}.csv`, {
+                download: true,
+                header: true,
+                skipEmptyLines: true,
+                complete: function(results) {
+                    const data = results.data;
+                    // Filter data for allowed matrix sizes
+                    const filteredData = data.filter(row => allowedMatrixSizes.includes(parseInt(row['Matrix size'])));
+                    const timeData = filteredData.map(row => {
+                        const matrixSize = parseInt(row['Matrix size']);
+                        const fileTime = parseFloat(row['Avg Execution Time(ms)']);
+                        const naiveTime = naiveTimes[matrixSize] || 1; // Fallback to 1 to avoid division by zero
+                        return naiveTime / fileTime; // Calculate speedup
+                    });
+                    const sizes = filteredData.map(row => parseInt(row['Matrix size']));
+                    
+                    // Update global matrix sizes (assuming all CSVs have the same matrix sizes)
+                    if (matrixSizes.length === 0) {
+                        matrixSizes = sizes.map(String); // Convert to strings for category scale
+                    }
+
+                    // Add dataset for this tile size
+                    datasets.push({
+                        label: `${fileNames}`,
+                        data: timeData,
+                        backgroundColor: color,
+                        borderColor: color,
+                        borderWidth: 1
+                    });
+
+                    callback();
+                },
+                error: function(error) {
+                    console.warn(`Failed to load ${fileNames}.csv: ${error}`);
+                    callback(); // Continue even if one file fails
+                }
+            });
+        }
+
+        // Counter to track loaded CSVs
+        let loadedCount = 0;
+
+        // Function to render chart after all CSVs are loaded
+        function renderChart() {
+            const ctx = document.getElementById('speedupChart').getContext('2d');
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: matrixSizes, // Exact matrix sizes from CSV (128 to 2048)
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Speedup vs. Matrix Size (64 to 2048) for Different Optimizations',
+                            font: {
+                                size: 18
+                            }
+                        },
+                        legend: {
+                            position: 'top',
+                            labels: {
+                                boxWidth: 20,
+                                padding: 30,
+                                font: {
+                                    size: 12
+                                }
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            type: 'category',
+                            title: {
+                                display: true,
+                                text: 'Matrix Size',
+                                font: {
+                                    size: 14
+                                },
+                                color: '#000000' // Dark black for x-axis title
+                            },
+                            ticks: {
+                                color: '#000000' // Dark black for x-axis tick labels
+                            }
+                        },
+                        y: {
+                            type: 'linear',
+                            title: {
+                                display: true,
+                                text: 'Speedup (Naive / Optimization Execution Time)',
+                                font: {
+                                    size: 14
+                                },
+                                color: '#000000' // Dark black for y-axis title
+                            },
+                            min: 0,
+                            max: 15, // Based on max speedup ~4.2
+                            ticks: {
+                                stepSize: 0.5,
+                                color: '#000000', // Dark black for y-axis tick labels
+                                callback: function(value) {
+                                    return Number(value).toFixed(1); // 1 decimal place for readability
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Load naive CSV first, then tiled CSVs
+        loadNaiveCSV(() => {
+            fileNames.forEach((fname, index) => {
+                loadTiledCSV(fname, colors[index % colors.length], () => {
+                    loadedCount++;
+                    if (loadedCount === fileNames.length) {
+                        renderChart();
+                    }
+                });
+            });
+        });
+    </script>
+</body>
+</html>

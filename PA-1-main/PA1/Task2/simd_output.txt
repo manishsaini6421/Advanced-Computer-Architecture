@@ -1,0 +1,495 @@
+emb-dim: 128
+
+Time WITHOUT software prefetching: 404 microseconds.
+ Performance counter stats for './emb_simd':
+
+    43,230,730,692      instructions                                                          
+
+       7.036038112 seconds time elapsed
+
+       6.829849000 seconds user
+       0.204995000 seconds sys
+
+
+Time WITHOUT software prefetching: 438 microseconds.
+ Performance counter stats for './emb_simd':
+
+    43,230,362,152      instructions                                                          
+
+       7.017872682 seconds time elapsed
+
+       6.830892000 seconds user
+       0.185969000 seconds sys
+
+
+Time WITHOUT software prefetching: 405 microseconds.
+ Performance counter stats for './emb_simd':
+
+    43,230,691,737      instructions                                                          
+
+       6.964825914 seconds time elapsed
+
+       6.761666000 seconds user
+       0.200930000 seconds sys
+
+
+256 emb-dim
+
+Time WITHOUT software prefetching: 711 microseconds.
+ Performance counter stats for './emb_simd':
+
+    86,472,236,160      instructions                                                          
+
+      14.029438003 seconds time elapsed
+
+      13.584017000 seconds user
+       0.442935000 seconds sys
+
+Time WITHOUT software prefetching: 708 microseconds.
+ Performance counter stats for './emb_simd':
+
+    86,474,195,354      instructions                                                          
+
+      14.029736745 seconds time elapsed
+
+      13.659828000 seconds user
+       0.366968000 seconds sys
+
+
+Time WITHOUT software prefetching: 679 microseconds.
+ Performance counter stats for './emb_simd':
+
+    86,477,921,206      instructions                                                          
+
+      14.040438079 seconds time elapsed
+
+      13.629615000 seconds user
+       0.402899000 seconds sys
+
+
+512 emb-dim
+
+Time WITHOUT software prefetching: 1261 microseconds.
+ Performance counter stats for './emb_simd':
+
+   172,967,611,078      instructions                                                          
+
+      28.049521271 seconds time elapsed
+
+      27.263044000 seconds user
+       0.783943000 seconds sys
+
+
+Time WITHOUT software prefetching: 1253 microseconds.
+ Performance counter stats for './emb_simd':
+
+   172,962,926,889      instructions                                                          
+
+      28.064826967 seconds time elapsed
+
+      27.243853000 seconds user
+       0.812906000 seconds sys
+
+
+Time WITHOUT software prefetching: 1252 microseconds.
+ Performance counter stats for './emb_simd':
+
+   172,963,578,417      instructions                                                          
+
+      28.048317994 seconds time elapsed
+
+      27.232183000 seconds user
+       0.808827000 seconds sys
+
+
+1024 emb-dim
+
+Time WITHOUT software prefetching: 2409 microseconds.
+ Performance counter stats for './emb_simd':
+
+   345,973,648,626      instructions                                                          
+
+      56.241400485 seconds time elapsed
+
+      54.613427000 seconds user
+       1.603836000 seconds sys
+
+
+Time WITHOUT software prefetching: 2408 microseconds.
+ Performance counter stats for './emb_simd':
+
+   345,902,345,091      instructions                                                          
+
+      56.135160046 seconds time elapsed
+
+      54.560950000 seconds user
+       1.560798000 seconds sys
+
+    
+Time WITHOUT software prefetching: 2401 microseconds.
+ Performance counter stats for './emb_simd':
+
+   345,905,825,401      instructions                                                          
+
+      56.113013192 seconds time elapsed
+
+      54.526315000 seconds user
+       1.574749000 seconds sys
+
+
+1500 emb-dim 
+
+Time WITHOUT software prefetching: 3524 microseconds.
+ Performance counter stats for './emb_simd':
+
+   506,621,712,030      instructions                                                          
+
+      84.614251129 seconds time elapsed
+
+      82.231006000 seconds user
+       2.368654000 seconds sys
+
+
+Time WITHOUT software prefetching: 3490 microseconds.
+ Performance counter stats for './emb_simd':
+
+   506,625,754,190      instructions                                                          
+
+      84.663310124 seconds time elapsed
+
+      82.369140000 seconds user
+       2.281893000 seconds sys
+
+
+Time WITHOUT software prefetching: 3519 microseconds.
+ Performance counter stats for './emb_simd':
+
+   506,620,303,526      instructions                                                          
+
+      84.623784969 seconds time elapsed
+
+      82.347706000 seconds user
+       2.263826000 seconds sys
+
+
+
+1250 emb-dim 
+
+Time WITHOUT software prefetching: 2944 microseconds.
+ Performance counter stats for './emb_simd':
+
+   422,167,141,443      instructions                                                          
+
+      70.571675153 seconds time elapsed
+
+      68.578216000 seconds user
+       1.981717000 seconds sys
+
+Time WITHOUT software prefetching: 2954 microseconds.
+ Performance counter stats for './emb_simd':
+
+   422,168,669,652      instructions                                                          
+
+      70.531219860 seconds time elapsed
+
+      68.495782000 seconds user
+       2.012699000 seconds sys
+
+Time WITHOUT software prefetching: 2960 microseconds.
+ Performance counter stats for './emb_simd':
+
+   422,163,479,723      instructions                                                          
+
+      70.515638864 seconds time elapsed
+
+      68.636799000 seconds user
+       1.867804000 seconds sys
+
+
+2048
+
+
+Time WITHOUT software prefetching: 756733 microseconds.
+ Performance counter stats for './emb_simd':
+
+   727,979,313,595      instructions                                                          
+
+     313.423092655 seconds time elapsed
+
+     147.387308000 seconds user
+      18.534583000 seconds sys
+
+
+Time WITHOUT software prefetching: 771435 microseconds.
+ Performance counter stats for './emb_simd':
+
+   727,361,816,465      instructions                                                          
+
+     319.339376043 seconds time elapsed
+
+     152.978749000 seconds user
+      17.732841000 seconds sys
+
+    Time WITHOUT software prefetching: 672890 microseconds.
+
+ Performance counter stats for './emb_simd':
+
+   725,624,562,693      instructions                                                          
+
+     314.309873924 seconds time elapsed
+
+     154.151297000 seconds user
+      17.378413000 seconds sys
+
+
+-----------------------------------------------------------------------------------------------
+
+256 bits, 128 emb-dim 
+
+Time WITH SIMD: 256 microseconds.
+ Performance counter stats for './emb_simd':
+
+    43,220,684,987      instructions                                                          
+
+       7.043220646 seconds time elapsed
+
+       6.826541000 seconds user
+       0.199957000 seconds sys
+
+Time WITH SIMD: 272 microseconds.
+ Performance counter stats for './emb_simd':
+
+    43,221,683,569      instructions                                                          
+
+       7.015430722 seconds time elapsed
+
+       6.809102000 seconds user
+       0.205003000 seconds sys
+
+Time WITH SIMD: 255 microseconds.
+ Performance counter stats for './emb_simd':
+
+    43,221,766,924      instructions                                                          
+
+       7.023327653 seconds time elapsed
+
+       6.848273000 seconds user
+       0.171981000 seconds sys
+
+
+256 emb-dim:
+
+
+Time WITH SIMD: 361 microseconds.
+ Performance counter stats for './emb_simd':
+
+    86,445,610,867      instructions                                                          
+
+      14.072473800 seconds time elapsed
+
+      13.702035000 seconds user
+       0.363947000 seconds sys
+
+
+Time WITH SIMD: 361 microseconds.
+ Performance counter stats for './emb_simd':
+
+    86,446,972,948      instructions                                                          
+
+      14.052876622 seconds time elapsed
+
+      13.653914000 seconds user
+       0.392997000 seconds sys
+
+
+
+Time WITH SIMD: 364 microseconds.
+ Performance counter stats for './emb_simd':
+
+    86,454,983,145      instructions                                                          
+
+      14.045507765 seconds time elapsed
+
+      13.620175000 seconds user
+       0.418913000 seconds sys
+
+
+
+512 emb-dim:
+
+Time WITH SIMD: 642 microseconds.
+ Performance counter stats for './emb_simd':
+
+   172,950,477,250      instructions                                                          
+
+      28.156236913 seconds time elapsed
+
+      27.314597000 seconds user
+       0.830896000 seconds sys
+
+
+Time WITH SIMD: 586 microseconds.
+ Performance counter stats for './emb_simd':
+
+   172,885,530,703      instructions                                                          
+
+      28.033898889 seconds time elapsed
+
+      27.270490000 seconds user
+       0.755902000 seconds sys
+
+
+Time WITH SIMD: 591 microseconds.
+ Performance counter stats for './emb_simd':
+
+   172,888,912,985      instructions                                                          
+
+      28.050194764 seconds time elapsed
+
+      27.291252000 seconds user
+       0.749869000 seconds sys
+
+
+1024
+
+Time WITH SIMD: 600 microseconds.
+ Performance counter stats for './emb_simd':
+
+   172,881,715,947      instructions                                                          
+
+      28.068562043 seconds time elapsed
+
+      27.305507000 seconds user
+       0.759902000 seconds sys
+
+
+Time WITH SIMD: 589 microseconds.
+ Performance counter stats for './emb_simd':
+
+   172,885,916,780      instructions                                                          
+
+      28.042367335 seconds time elapsed
+
+      27.281713000 seconds user
+       0.751964000 seconds sys
+
+
+Time WITH SIMD: 580 microseconds.
+ Performance counter stats for './emb_simd':
+
+   172,885,258,902      instructions                                                          
+
+      28.058729274 seconds time elapsed
+
+      27.261801000 seconds user
+       0.788965000 seconds sys
+
+
+1250
+
+Time WITH SIMD: 1337 microseconds.
+ Performance counter stats for './emb_simd':
+
+   422,152,155,690      instructions                                                          
+
+      70.545676799 seconds time elapsed
+
+      68.635968000 seconds user
+       1.897833000 seconds sys
+
+
+Time WITH SIMD: 1257 microseconds.
+ Performance counter stats for './emb_simd':
+
+   422,155,989,046      instructions                                                          
+
+      70.592385208 seconds time elapsed
+
+      68.638586000 seconds user
+       1.938677000 seconds sy
+
+
+Time WITH SIMD: 1247 microseconds.
+ Performance counter stats for './emb_simd':
+
+   422,152,809,409      instructions                                                          
+
+      70.494407051 seconds time elapsed
+
+      68.612683000 seconds user
+       1.872800000 seconds sys
+
+
+1500
+
+Time WITH SIMD: 1461 microseconds.
+ Performance counter stats for './emb_simd':
+
+   506,611,523,755      instructions                                                          
+
+      84.619468593 seconds time elapsed
+
+      82.361661000 seconds user
+       2.245690000 seconds sys
+
+
+Time WITH SIMD: 1538 microseconds.
+ Performance counter stats for './emb_simd':
+
+   506,609,588,328      instructions                                                          
+
+      84.585012117 seconds time elapsed
+
+      82.327451000 seconds user
+       2.246793000 seconds sys
+
+
+Time WITH SIMD: 1497 microseconds.
+ Performance counter stats for './emb_simd':
+
+   506,614,775,086      instructions                                                          
+
+      84.622301405 seconds time elapsed
+
+      82.234020000 seconds user
+       2.371712000 seconds sys
+
+
+2048
+
+Time WITH SIMD: 603514 microseconds.
+ Performance counter stats for './emb_simd':
+
+   726,502,839,947      instructions                                                          
+
+     378.532522655 seconds time elapsed
+
+     160.883921000 seconds user
+      18.547168000 seconds sys
+
+
+Time WITH SIMD: 579190 microseconds.
+ Performance counter stats for './emb_simd':
+
+   727,651,202,402      instructions                                                          
+
+     342.220439249 seconds time elapsed
+
+     150.465392000 seconds user
+      17.760377000 seconds sys
+
+Time WITH SIMD: 525278 microseconds.
+ Performance counter stats for './emb_simd':
+
+   728,423,344,081      instructions                                                          
+
+     343.956496395 seconds time elapsed
+
+     159.622017000 seconds user
+      19.056084000 seconds sys
+
+
+-----------------------------------------------------------------------------------------------
+
+
+
